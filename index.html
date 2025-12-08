@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piscina Florangel</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+
+    <main class="main-container">
+        
+        <section id="hero" class="full-screen hero-bg">
+            <div class="hero-content">
+                <h1>Piscina Florangel</h1>
+                <p>Tu espacio de relax y diversión</p>
+            </div>
+            <button class="nav-arrow bottom" onclick="goToSection('calendar-section')">
+                <span class="material-icons">keyboard_arrow_down</span>
+            </button>
+        </section>
+
+        <section id="calendar-section" class="full-screen">
+            <button class="nav-arrow top" onclick="goToSection('hero')">
+                <span class="material-icons">keyboard_arrow_up</span>
+            </button>
+            
+            <div class="content-wrapper">
+                <h2>Registro del Cliente</h2>
+                
+                <header class="calendar-header">
+                    <button id="prevMonth">&lt;</button>
+                    <h3 id="monthYear"></h3>
+                    <button id="nextMonth">&gt;</button>
+                </header>
+
+                <div class="weekdays">
+                    <div>Do</div><div>Lu</div><div>Ma</div><div>Mi</div><div>Ju</div><div>Vi</div><div>Sa</div>
+                </div>
+                <div class="calendar" id="calendar"></div>
+            </div>
+
+            <button class="nav-arrow bottom" onclick="goToSection('history-section')">
+                <span class="material-icons">keyboard_arrow_down</span>
+            </button>
+        </section>
+
+        <section id="history-section" class="full-screen">
+            <button class="nav-arrow top" onclick="goToSection('calendar-section')">
+                <span class="material-icons">keyboard_arrow_up</span>
+            </button>
+            
+            <div class="content-wrapper history-wrapper">
+                <h2>Historial de Reservas</h2>
+                
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Buscar por nombre de cliente...">
+                </div>
+
+                <ul id="historyList" class="history-list">
+                    </ul>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="reservationModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3 id="modalDateTitle">Editar Reserva</h3>
+            <form id="reservationForm">
+                <input type="hidden" id="selectedDate">
+                <label>Nombre Cliente:</label>
+                <input type="text" id="name" required placeholder="Nombre completo">
+                <label>Teléfono:</label>
+                <input type="tel" id="phone" placeholder="Ej: 9 1234 5678">
+                <label>Precio:</label>
+                <input type="number" id="price" placeholder="$">
+                <label>Personas:</label>
+                <input type="number" id="people">
+                <label>Hora Inicio:</label>
+                <input type="time" id="time">
+                <div class="actions">
+                    <button type="submit" class="btn-save">Guardar</button>
+                    <button type="button" id="btnDelete" class="btn-delete">Eliminar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
