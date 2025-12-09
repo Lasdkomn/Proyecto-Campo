@@ -452,3 +452,5 @@ window.goToSection = (sectionId) => {
 
 // Iniciar
 renderCalendar();
+ 
+
