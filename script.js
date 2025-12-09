@@ -207,4 +207,5 @@ document.getElementById('nextMonth').addEventListener('click', () => {
 });
 
 window.goToSection = goToSection;
-renderCalendar();
+renderCalendar(); 
+
