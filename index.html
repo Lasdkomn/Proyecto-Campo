@@ -6,6 +6,7 @@
     <title>Piscina Florangel</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -28,16 +29,14 @@
             
             <div class="content-wrapper">
                 <h2>Registro del Cliente</h2>
-                
                 <header class="calendar-header">
                     <button id="prevMonth">&lt;</button>
                     <h3 id="monthYear"></h3>
                     <button id="nextMonth">&gt;</button>
                 </header>
-
                 <div class="weekdays">
-    <div>Lu</div><div>Ma</div><div>Mi</div><div>Ju</div><div>Vi</div><div>Sa</div><div>Do</div>
-</div>
+                    <div>Lu</div><div>Ma</div><div>Mi</div><div>Ju</div><div>Vi</div><div>Sa</div><div>Do</div>
+                </div>
                 <div class="calendar" id="calendar"></div>
             </div>
 
@@ -54,12 +53,58 @@
             <div class="content-wrapper history-wrapper">
                 <h2>Historial de Reservas</h2>
                 
-                <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="Buscar por nombre de cliente...">
+                <div class="search-box-container">
+                    <input type="text" id="searchInput" placeholder="Buscar por nombre...">
+                    
+                    <select id="statusFilter" class="glass-select-small">
+                        <option value="all">Todo</option>
+                        <option value="paid">✅ Pagadas</option>
+                        <option value="pending">⏳ Pendientes</option>
+                    </select>
                 </div>
 
-                <ul id="historyList" class="history-list">
-                    </ul>
+                <ul id="historyList" class="history-list"></ul>
+            </div>
+
+            <button class="nav-arrow bottom" onclick="goToSection('dashboard-section')">
+                <span class="material-icons">keyboard_arrow_down</span>
+            </button>
+        </section>
+
+        <section id="dashboard-section" class="full-screen">
+            <button class="nav-arrow top" onclick="goToSection('history-section')">
+                <span class="material-icons">keyboard_arrow_up</span>
+            </button>
+
+            <div class="content-wrapper dashboard-wrapper">
+                <div class="dashboard-header">
+                    <h2>Estadísticas</h2>
+                    <select id="yearFilter" class="glass-select"></select>
+                </div>
+                
+                <div class="stats-cards">
+                    <div class="card">
+                        <h3>Mes Actual</h3>
+                        <p id="monthIncome">$0</p>
+                    </div>
+                    <div class="card">
+                        <h3>Año Seleccionado</h3>
+                        <p id="yearIncome">$0</p>
+                    </div>
+                    <div class="card total">
+                        <h3>Total Histórico</h3>
+                        <p id="totalIncome">$0</p>
+                    </div>
+                </div>
+
+                <div class="charts-container">
+                    <div class="chart-box">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                    <div class="chart-box">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -71,14 +116,22 @@
             <h3 id="modalDateTitle">Editar Reserva</h3>
             <form id="reservationForm">
                 <input type="hidden" id="selectedDate">
+                <div class="status-box">
+                    <label for="status" class="status-label">
+                        <input type="checkbox" id="status"> 
+                        ✅ Reserva Pagada
+                    </label>
+                </div>
                 <label>Nombre Cliente:</label>
-                <input type="text" id="name" required placeholder="Nombre completo">
+                <input type="text" id="name" required placeholder="Solo letras">
+                
                 <label>Teléfono:</label>
-                <input type="tel" id="phone" placeholder="Ej: 9 1234 5678">
-                <label>Personas:</label>
-                <input type="number" id="people">
+                <input type="tel" id="phone" placeholder="Solo números">
+                
                 <label>Precio:</label>
                 <input type="number" id="price" placeholder="$">
+                <label>Personas:</label>
+                <input type="number" id="people">
                 <label>Hora Inicio:</label>
                 <input type="time" id="time">
                 <div class="actions">
