@@ -6,13 +6,20 @@
     --primary-dark: #023e8a;  /* Azul Oscuro */
     --bg-color: #caf0f8;      /* Fondo Pagina */
     
-    /* Colores de Estado (Vibrantes) */
-    --occupied-start: #ff6b6b; /* Rojo Claro */
+    /* Colores de Estado Reserva */
+    --occupied-start: #ff6b6b; /* Rojo Claro (Espera) */
     --occupied-end: #ee5253;   /* Rojo Oscuro */
-    --paid-start: #2ecc71;     /* Verde Claro */
+    --paid-start: #2ecc71;     /* Verde Claro (Lista) */
     --paid-end: #27ae60;       /* Verde Oscuro */
     
-    /* Efecto Vidrio (Glassmorphism) */
+    /* Colores Financieros (Gastos) */
+    --expense-red: #e74c3c;
+    --expense-dark: #c0392b;
+    --profit-green: #27ae60;
+    --income-blue: #2980b9;
+    --movement-purple: #9b59b6; /* Nuevo color para Movimiento Total */
+
+    /* Efecto Vidrio */
     --glass-bg: rgba(255, 255, 255, 0.9);
     --glass-border: rgba(255, 255, 255, 0.6);
     
@@ -24,7 +31,7 @@ body, html {
     margin: 0; padding: 0;
     font-family: 'Segoe UI', system-ui, sans-serif;
     height: 100%;
-    overscroll-behavior: none; /* Evita rebote elástico en móviles */
+    overscroll-behavior: none; 
     background-color: var(--bg-color);
     color: var(--text);
 }
@@ -33,14 +40,13 @@ body, html {
    2. CONTENEDOR PRINCIPAL (SCROLL SNAP)
    ========================================= */
 .main-container {
-    height: 100vh; 
-    height: 100dvh; /* Altura dinámica para móviles modernos */
+    height: 100vh; height: 100dvh;
     overflow-y: scroll;
-    scroll-snap-type: y mandatory; /* Frena en cada sección */
+    scroll-snap-type: y mandatory;
     scroll-behavior: smooth;
-    scrollbar-width: none; /* Ocultar scrollbar Firefox */
+    scrollbar-width: none; 
 }
-.main-container::-webkit-scrollbar { display: none; /* Ocultar scrollbar Chrome */ }
+.main-container::-webkit-scrollbar { display: none; }
 
 .full-screen {
     height: 100vh; height: 100dvh;
@@ -62,26 +68,17 @@ body, html {
 }
 
 .hero-content h1 {
-    font-size: 3.5rem;
-    margin-bottom: 0.5rem;
+    font-size: 3.5rem; margin-bottom: 0.5rem;
     text-shadow: 0 4px 15px rgba(0,0,0,0.5);
-    /* Animación de entrada: Texto sube */
-    opacity: 0;
-    animation: fadeInUp 1s ease-out forwards; 
+    opacity: 0; animation: fadeInUp 1s ease-out forwards; 
 }
 
 .hero-content p {
-    font-size: 1.3rem;
-    font-weight: 300;
-    opacity: 0;
-    /* Entra un poco después del título */
-    animation: fadeInUp 1s ease-out 0.3s forwards; 
+    font-size: 1.3rem; font-weight: 300;
+    opacity: 0; animation: fadeInUp 1s ease-out 0.3s forwards; 
 }
 
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(40px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
 
 /* =========================================
    4. CONTENEDORES ESTILO VIDRIO
@@ -91,26 +88,18 @@ body, html {
     background: var(--glass-bg);
     backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
     border: 1px solid var(--glass-border);
-    border-radius: 25px; 
-    padding: 25px;
+    border-radius: 25px; padding: 25px;
     box-shadow: var(--shadow-soft);
     transition: all 0.3s ease;
     box-sizing: border-box;
-    /* Zoom de entrada al ver la sección */
     animation: zoomIn 0.5s ease-out;
 }
+@keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
-@keyframes zoomIn {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
-}
-
-.content-wrapper h2 {
-    margin-top: 0; color: var(--primary); font-size: 1.6rem; margin-bottom: 15px; text-align: center;
-}
+.content-wrapper h2 { margin-top: 0; color: var(--primary); font-size: 1.6rem; margin-bottom: 15px; text-align: center; }
 
 /* =========================================
-   5. FLECHAS DE NAVEGACIÓN (FLOTANTES)
+   5. FLECHAS DE NAVEGACIÓN
    ========================================= */
 .nav-arrow {
     position: absolute; background: white; border: none; color: var(--primary);
@@ -120,22 +109,14 @@ body, html {
     display: flex; align-items: center; justify-content: center;
     transition: transform 0.2s, background-color 0.2s;
 }
-
 .nav-arrow:hover { transform: scale(1.15); background-color: #f0f8ff; }
 .nav-arrow:active { transform: scale(0.9); }
-
-.top { top: 20px; }
-.bottom { bottom: 20px; animation: floatArrow 2s infinite ease-in-out; }
-
-@keyframes floatArrow {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(10px); }
-}
-
+.top { top: 20px; } .bottom { bottom: 20px; animation: floatArrow 2s infinite ease-in-out; }
+@keyframes floatArrow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(10px); } }
 #hero .bottom { background: rgba(255,255,255,0.2); color: white; backdrop-filter: blur(5px); }
 
 /* =========================================
-   6. CALENDARIO INTERACTIVO (ELEVACIÓN 3D)
+   6. CALENDARIO
    ========================================= */
 .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
 .calendar-header h3 { margin: 0; font-size: 1.3rem; color: #444; transition: transform 0.2s; }
@@ -151,180 +132,132 @@ body, html {
     border-radius: 12px; background: rgba(255,255,255,0.7); cursor: pointer;
     font-weight: 600; font-size: 0.95rem;
     box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-    
-    /* Transición suave para el Hover */
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    
-    /* Entrada animada (Cascada JS) */
-    opacity: 0; transform: scale(0.5); 
-    animation: popIn 0.4s forwards;
+    opacity: 0; transform: scale(0.5); animation: popIn 0.4s forwards;
 }
-
-/* EFECTO DE ELEVACIÓN AL PASAR EL MOUSE */
-.day:hover {
-    transform: translateY(-5px) scale(1.1) !important; /* Levanta y agranda */
-    z-index: 5;
-    background: white;
-    box-shadow: 0 10px 20px rgba(0, 119, 182, 0.25);
-    color: var(--primary);
-    border: 1px solid var(--primary);
-}
-
-/* Colores de Estado */
+.day:hover { transform: translateY(-5px) scale(1.1) !important; z-index: 5; background: white; box-shadow: 0 10px 20px rgba(0, 119, 182, 0.25); color: var(--primary); border: 1px solid var(--primary); }
 .day.occupied { background: linear-gradient(135deg, var(--occupied-start), var(--occupied-end)); color: white; border: none; }
 .day.paid { background: linear-gradient(135deg, var(--paid-start), var(--paid-end)); color: white; border: none; }
 .day.current-day { border: 2px solid var(--primary); color: var(--primary); font-weight: bold; background: rgba(0, 119, 182, 0.1); }
-
-/* Días Pasados (Desactivados visualmente) */
-.day.past-day { background: #eeeeee; color: #bbbbbb; cursor: not-allowed; }
+.day.past-day { background: #eeeeee; color: #bbbbbb; cursor: not-allowed; } 
 .day.past-day:hover { transform: none !important; box-shadow: none; background: #eee; border: none; color: #bbbbbb; }
-
 @keyframes popIn { to { opacity: 1; transform: scale(1); } }
-@keyframes fadeInDown { from { opacity: 0; transform: translateY(-15px); } to { opacity: 1; transform: translateY(0); } }
 
 /* =========================================
-   7. HISTORIAL & BÚSQUEDA
+   7. HISTORIAL & BUSCADOR
    ========================================= */
 .history-wrapper { height: 80vh; display: flex; flex-direction: column; }
 
-/* Contenedor Flex para Buscador y Filtro */
 .search-box-container { display: flex; gap: 10px; margin-bottom: 20px; }
-
-.search-box-container input {
-    flex: 2; /* Ocupa más espacio */
-    padding: 12px 15px; border: 2px solid transparent; border-radius: 30px; outline: none;
-    background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    transition: all 0.3s ease; font-size: 1rem;
-}
+.search-box-container input { flex: 2; padding: 12px 15px; border: 2px solid transparent; border-radius: 30px; outline: none; background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: all 0.3s ease; font-size: 1rem; }
 .search-box-container input:focus { border-color: var(--primary); transform: scale(1.02); }
 
-.glass-select-small {
-    flex: 1; /* Ocupa menos espacio */
-    padding: 5px 10px; border-radius: 20px; border: 1px solid var(--primary);
-    background: white; color: var(--primary); font-weight: bold; outline: none; cursor: pointer;
-    font-size: 0.9rem;
-}
+/* Selector pequeño para filtros */
+.glass-select-small { flex: 1; padding: 5px 10px; border-radius: 20px; border: 1px solid var(--primary); background: white; color: var(--primary); font-weight: bold; outline: none; cursor: pointer; font-size: 0.9rem; }
 
 .history-list { list-style: none; padding: 0; overflow-y: auto; flex-grow: 1; padding-right: 5px; }
-
-.history-item {
-    background: white; padding: 15px; border-radius: 15px; margin-bottom: 12px;
-    border-left: 6px solid var(--primary);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.03);
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-
-/* Animación al pasar el mouse por una reserva */
-.history-item:hover {
-    transform: translateY(-4px) translateX(4px); 
-    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-}
-
+.history-item { background: white; padding: 15px; border-radius: 15px; margin-bottom: 12px; border-left: 6px solid var(--primary); box-shadow: 0 4px 6px rgba(0,0,0,0.03); cursor: pointer; transition: all 0.3s; }
+.history-item:hover { transform: translateY(-4px) translateX(4px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
 .history-item strong { display: block; font-size: 1.05rem; color: var(--primary); margin-bottom: 4px; }
 .history-item small { color: #666; font-size: 0.9rem; }
 
 /* =========================================
-   8. DASHBOARD (GRÁFICOS Y TARJETAS)
+   8. DASHBOARD (ESTADÍSTICAS)
    ========================================= */
 .dashboard-wrapper { height: 85vh; overflow-y: auto; }
-
 .dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-
-/* Selector de Año Estiloso */
-.glass-select {
-    padding: 8px 20px; border-radius: 25px; border: 2px solid var(--primary);
-    background: white; color: var(--primary); font-weight: bold; font-size: 1rem;
-    outline: none; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    transition: all 0.3s ease;
-}
+.glass-select { padding: 8px 20px; border-radius: 25px; border: 2px solid var(--primary); background: white; color: var(--primary); font-weight: bold; font-size: 1rem; outline: none; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: all 0.3s ease; }
 .glass-select:hover { background: var(--primary); color: white; transform: translateY(-2px); }
 
 .stats-cards { display: flex; gap: 15px; margin-bottom: 25px; }
-.card {
-    background: white; padding: 15px; border-radius: 15px; flex: 1; text-align: center;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-    transition: transform 0.3s;
-}
+.card { background: white; padding: 15px; border-radius: 15px; flex: 1; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.05); transition: transform 0.3s; }
 .card:hover { transform: translateY(-5px); }
-
 .card h3 { font-size: 0.8rem; color: #888; text-transform: uppercase; margin: 0 0 8px 0; }
 .card p { font-size: 1.3rem; font-weight: 800; color: var(--primary); margin: 0; }
 .card.total p { color: var(--paid-start); }
 
 .charts-container { display: flex; flex-direction: column; gap: 20px; }
-.chart-box {
-    background: white; padding: 15px; border-radius: 20px; height: 250px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-    transition: transform 0.3s;
-}
+.chart-box { background: white; padding: 15px; border-radius: 20px; height: 250px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); transition: transform 0.3s; }
 .chart-box:hover { transform: scale(1.02); }
 
 /* =========================================
-   9. MODAL Y FORMULARIO
+   9. SECCIÓN DE GASTOS (GRID DE 4)
    ========================================= */
-.modal {
-    display: none; position: fixed; z-index: 200; left: 0; top: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
-    justify-content: center; align-items: center;
+.expenses-wrapper { height: 85vh; display: flex; flex-direction: column; overflow: hidden; }
+
+/* Nuevo Grid para los 4 recuadros */
+.financial-summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 2 columnas */
+    gap: 15px;
+    margin-bottom: 20px;
 }
 
-.modal-content {
-    background: white; padding: 30px; border-radius: 25px;
-    width: 85%; max-width: 400px; text-align: left;
-    box-shadow: 0 25px 50px rgba(0,0,0,0.25);
-    /* Animación de entrada con rebote */
-    animation: bounceInModal 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+.f-card {
+    background: white; padding: 15px 5px; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: center; transition: transform 0.3s;
 }
+.f-card:hover { transform: translateY(-5px); }
 
-@keyframes bounceInModal {
-    0% { opacity: 0; transform: scale(0.3) translateY(100px); }
-    50% { opacity: 1; transform: scale(1.05); }
-    70% { transform: scale(0.95); }
-    100% { transform: scale(1) translateY(0); }
+.f-card h3 { font-size: 0.8rem; margin: 0; color: #555; font-weight: 700; }
+.f-card small { font-size: 0.65rem; color: #999; margin-bottom: 5px; display: block; }
+.f-card p { font-size: 1.1rem; font-weight: 800; margin: 0; }
+
+/* Colores específicos de finanzas */
+.f-card.profit p { color: var(--profit-green); } /* Ganancia */
+.f-card.income p { color: var(--income-blue); }  /* Total Dinero */
+.f-card.expense p { color: var(--expense-dark); } /* Gastos */
+.f-card.movement p { color: var(--movement-purple); } /* Movimiento Total */
+
+/* Botón Nuevo Gasto */
+.btn-add-expense {
+    background: var(--expense-red); color: white; border: none; padding: 12px; border-radius: 30px;
+    font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    gap: 10px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(231, 76, 60, 0.3); transition: transform 0.2s;
 }
+.btn-add-expense:hover { background: var(--expense-dark); transform: scale(1.02); }
+.btn-add-expense .material-icons { font-size: 20px; }
 
+/* Lista de Gastos */
+.expense-item {
+    background: white; padding: 15px; border-radius: 12px; margin-bottom: 10px;
+    border-left: 5px solid var(--expense-red); box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+    transition: transform 0.2s;
+}
+.expense-item:hover { transform: translateX(5px); }
+.expense-info strong { display: block; color: var(--expense-dark); font-size: 1rem; }
+.expense-info span { font-size: 0.85rem; color: #777; }
+.expense-amount { font-weight: bold; font-size: 1.1rem; color: var(--expense-dark); }
+
+
+/* =========================================
+   10. MODAL Y FORMULARIO
+   ========================================= */
+.modal { display: none; position: fixed; z-index: 200; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); justify-content: center; align-items: center; }
+.modal-content { background: white; padding: 30px; border-radius: 25px; width: 85%; max-width: 400px; text-align: left; box-shadow: 0 25px 50px rgba(0,0,0,0.25); animation: bounceInModal 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+@keyframes bounceInModal { 0% { opacity: 0; transform: scale(0.3) translateY(100px); } 50% { opacity: 1; transform: scale(1.05); } 100% { transform: scale(1) translateY(0); } }
 .close { float: right; font-size: 32px; cursor: pointer; color: #aaa; transition: color 0.3s; }
 .close:hover { color: var(--occupied-end); }
 
-/* Checkbox animado */
-.status-box {
-    background: #e8f8f5; padding: 12px; border-radius: 12px; margin-bottom: 20px;
-    border: 2px solid var(--paid-start); transition: transform 0.2s;
-}
+.status-box { background: #e8f8f5; padding: 12px; border-radius: 12px; margin-bottom: 20px; border: 2px solid var(--paid-start); transition: transform 0.2s; }
 .status-box:active { transform: scale(0.98); }
-
-.status-label {
-    margin: 0 !important; color: var(--paid-end) !important; font-weight: bold; font-size: 1rem !important;
-    cursor: pointer; display: flex; align-items: center; gap: 12px;
-}
+.status-label { margin: 0 !important; color: var(--paid-end) !important; font-weight: bold; font-size: 1rem !important; cursor: pointer; display: flex; align-items: center; gap: 12px; }
 input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--paid-start); cursor: pointer; }
 
-/* Inputs Bonitos */
 form label { display: block; margin-top: 12px; font-weight: 600; font-size: 0.9rem; color: #555; }
-form input[type="text"], input[type="number"], input[type="tel"], input[type="time"] {
-    width: 100%; padding: 12px; margin-top: 6px; border: 2px solid #eee; border-radius: 10px;
-    box-sizing: border-box; font-size: 16px; transition: all 0.3s;
-}
+form input[type="text"], input[type="number"], input[type="tel"], input[type="time"] { width: 100%; padding: 12px; margin-top: 6px; border: 2px solid #eee; border-radius: 10px; box-sizing: border-box; font-size: 16px; transition: all 0.3s; }
 form input:focus { border-color: var(--primary); background: #f9fcff; }
 
 .actions { display: flex; gap: 15px; margin-top: 25px; }
-button[type="submit"], .btn-delete {
-    flex: 1; padding: 14px; border: none; border-radius: 12px; color: white;
-    font-weight: bold; cursor: pointer; font-size: 1rem;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
+button[type="submit"], .btn-delete { flex: 1; padding: 14px; border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; font-size: 1rem; transition: transform 0.2s, box-shadow 0.2s; }
 .btn-save { background: var(--primary); box-shadow: 0 4px 10px rgba(0, 119, 182, 0.3); }
 .btn-save:hover { background: var(--primary-dark); transform: translateY(-2px); }
-
 .btn-delete { background: var(--occupied-end); box-shadow: 0 4px 10px rgba(238, 82, 83, 0.3); }
 .btn-delete:hover { background: #c0392b; transform: translateY(-2px); }
-
 button:active { transform: scale(0.95) !important; }
 
 /* =========================================
-   10. RESPONSIVE (MÓVILES)
+   11. RESPONSIVE
    ========================================= */
 @media (max-width: 600px) {
     .content-wrapper { width: 95%; padding: 15px; }
@@ -332,6 +265,9 @@ button:active { transform: scale(0.95) !important; }
     .day { height: 38px; font-size: 0.9rem; }
     .history-wrapper { height: 90dvh; }
     .dashboard-wrapper { height: 90dvh; }
+    .expenses-wrapper { height: 90dvh; }
     .charts-container { gap: 10px; }
     .chart-box { height: 200px; }
+    
+    .financial-summary-grid { gap: 10px; }
 }
