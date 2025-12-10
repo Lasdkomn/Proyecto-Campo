@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Piscina Florangel</title>
+    
     <link rel="stylesheet" href="style.css">
+    
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -29,14 +32,17 @@
             
             <div class="content-wrapper">
                 <h2>Registro del Cliente</h2>
+                
                 <header class="calendar-header">
                     <button id="prevMonth">&lt;</button>
                     <h3 id="monthYear"></h3>
                     <button id="nextMonth">&gt;</button>
                 </header>
+
                 <div class="weekdays">
                     <div>Lu</div><div>Ma</div><div>Mi</div><div>Ju</div><div>Vi</div><div>Sa</div><div>Do</div>
                 </div>
+                
                 <div class="calendar" id="calendar"></div>
             </div>
 
@@ -54,16 +60,18 @@
                 <h2>Historial de Reservas</h2>
                 
                 <div class="search-box-container">
-                    <input type="text" id="searchInput" placeholder="Buscar por nombre...">
+                    <input type="text" id="searchInput" placeholder="Escribe el nombre..." style="display: none;">
                     
                     <select id="statusFilter" class="glass-select-small">
-                        <option value="all">Todo</option>
-                        <option value="paid">✅ Pagadas</option>
-                        <option value="pending">⏳ Pendientes</option>
+                        <option value="all">📅 Todo (Cronológico)</option>
+                        <option value="paid">✅ Reserva Lista</option>
+                        <option value="pending">⏳ En Espera</option>
+                        <option value="name">🔍 Buscar por Nombre</option>
                     </select>
                 </div>
 
-                <ul id="historyList" class="history-list"></ul>
+                <ul id="historyList" class="history-list">
+                    </ul>
             </div>
 
             <button class="nav-arrow bottom" onclick="goToSection('dashboard-section')">
@@ -106,34 +114,84 @@
                     </div>
                 </div>
             </div>
+
+            <button class="nav-arrow bottom" onclick="goToSection('expenses-section')">
+                <span class="material-icons">keyboard_arrow_down</span>
+            </button>
+        </section>
+
+        <section id="expenses-section" class="full-screen">
+            <button class="nav-arrow top" onclick="goToSection('dashboard-section')">
+                <span class="material-icons">keyboard_arrow_up</span>
+            </button>
+
+            <div class="content-wrapper expenses-wrapper">
+                <h2>Control de Gastos</h2>
+
+                <div class="financial-summary-grid">
+                    <div class="f-card profit">
+                        <h3>Ganancia Real</h3>
+                        <small>(Dinero - Gastos)</small>
+                        <p id="realProfit">$0</p>
+                    </div>
+                    <div class="f-card income">
+                        <h3>Total Dinero</h3>
+                        <small>(Ingresos)</small>
+                        <p id="grossIncome">$0</p>
+                    </div>
+                    <div class="f-card expense">
+                        <h3>Total Gastos</h3>
+                        <small>(Salidas)</small>
+                        <p id="totalExpenses">$0</p>
+                    </div>
+                    <div class="f-card movement">
+                        <h3>Movimiento Total</h3>
+                        <small>(Dinero + Gastos)</small>
+                        <p id="totalMovement">$0</p>
+                    </div>
+                </div>
+
+                <button class="btn-add-expense" onclick="openExpenseModal()">
+                    <span class="material-icons">add_circle</span> Nuevo Gasto
+                </button>
+
+                <ul id="expensesList" class="history-list">
+                    </ul>
+            </div>
         </section>
 
     </main>
 
     <div id="reservationModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
+            <span class="close" onclick="closeModalFunc('reservationModal')">&times;</span>
             <h3 id="modalDateTitle">Editar Reserva</h3>
+            
             <form id="reservationForm">
                 <input type="hidden" id="selectedDate">
+                
                 <div class="status-box">
                     <label for="status" class="status-label">
                         <input type="checkbox" id="status"> 
-                        ✅ Reserva Pagada
+                        ✅ Reserva Lista (Pagada)
                     </label>
                 </div>
+                
                 <label>Nombre Cliente:</label>
                 <input type="text" id="name" required placeholder="Solo letras">
-                
+
                 <label>Teléfono:</label>
                 <input type="tel" id="phone" placeholder="Solo números">
-                
+
                 <label>Precio:</label>
                 <input type="number" id="price" placeholder="$">
+
                 <label>Personas:</label>
                 <input type="number" id="people">
+
                 <label>Hora Inicio:</label>
                 <input type="time" id="time">
+
                 <div class="actions">
                     <button type="submit" class="btn-save">Guardar</button>
                     <button type="button" id="btnDelete" class="btn-delete">Eliminar</button>
@@ -142,8 +200,33 @@
         </div>
     </div>
 
+    <div id="expenseModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModalFunc('expenseModal')">&times;</span>
+            <h3>Registrar Gasto</h3>
+            
+            <form id="expenseForm">
+                <input type="hidden" id="expenseId">
+                
+                <label>Nombre del Gasto:</label>
+                <input type="text" id="expenseName" required placeholder="Ej: Cloro, Mantención...">
+
+                <label>Monto ($):</label>
+                <input type="number" id="expenseAmount" required placeholder="$">
+
+                <p style="font-size: 0.8rem; color: #888; margin-top: 10px;">
+                    📅 Fecha: Hoy (Automático)
+                </p>
+
+                <div class="actions">
+                    <button type="submit" class="btn-save" style="background: #e74c3c;">Guardar</button>
+                    <button type="button" id="btnDeleteExpense" class="btn-delete" style="display:none;">Eliminar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script type="module" src="script.js"></script>
+
 </body>
 </html>
-
-
