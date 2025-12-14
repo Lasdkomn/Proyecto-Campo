@@ -1,10 +1,6 @@
-// ==========================================
-// 1. IMPORTACIONES Y CONFIGURACIÓN FIREBASE
-// ==========================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, set, onValue, remove, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, set, onValue, remove, update, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// TUS CREDENCIALES (Piscina Florangel)
 const firebaseConfig = {
   apiKey: "AIzaSyAbVB5CcSGgtOY856Wv_nNdJP-z2oD3X_k",
   authDomain: "piscinaflorangel.firebaseapp.com",
@@ -15,35 +11,32 @@ const firebaseConfig = {
   appId: "1:305089524402:web:2467f46840b9c981004fab"
 };
 
-// Inicializar App
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// ==========================================
-// 2. VARIABLES DEL DOM
-// ==========================================
-// Calendario y Listas
+// DOM Elements
 const calendar = document.getElementById('calendar');
 const monthYear = document.getElementById('monthYear');
 const historyList = document.getElementById('historyList');
 const searchInput = document.getElementById('searchInput');
+const searchWrapper = document.getElementById('searchWrapper');
 const statusFilter = document.getElementById('statusFilter');
+const themeBtn = document.getElementById('themeToggle');
 
-// Modales
 const resModal = document.getElementById('reservationModal');
 const expModal = document.getElementById('expenseModal');
 
-// Formulario Reservas
 const dateInput = document.getElementById('selectedDate');
+const customOrderInput = document.getElementById('customOrder');
 const nameInput = document.getElementById('name');
 const phoneInput = document.getElementById('phone');
 const priceInput = document.getElementById('price');
 const peopleInput = document.getElementById('people');
 const timeInput = document.getElementById('time');
-const statusInput = document.getElementById('status'); 
+const statusInput = document.getElementById('status');
+const statusText = document.getElementById('statusText');
 const resForm = document.getElementById('reservationForm');
 
-// Formulario Gastos
 const expenseIdInput = document.getElementById('expenseId');
 const expenseNameInput = document.getElementById('expenseName');
 const expenseAmountInput = document.getElementById('expenseAmount');
@@ -51,177 +44,228 @@ const expenseForm = document.getElementById('expenseForm');
 const btnDeleteExpense = document.getElementById('btnDeleteExpense');
 const expensesList = document.getElementById('expensesList');
 
-// Dashboard
 const dashboardSection = document.getElementById('dashboard-section');
 const yearFilter = document.getElementById('yearFilter');
 const monthIncomeEl = document.getElementById('monthIncome');
 const yearIncomeEl = document.getElementById('yearIncome');
 const totalIncomeEl = document.getElementById('totalIncome');
 
-// 4 CAJAS FINANCIERAS (Sección Gastos)
-const realProfitEl = document.getElementById('realProfit'); // Ganancia Real
-const grossIncomeEl = document.getElementById('grossIncome'); // Total Dinero
-const totalExpensesEl = document.getElementById('totalExpenses'); // Gastos
-const totalMovementEl = document.getElementById('totalMovement'); // Movimiento Total (Nuevo)
+const realProfitEl = document.getElementById('realProfit');
+const grossIncomeEl = document.getElementById('grossIncome');
+const totalExpensesEl = document.getElementById('totalExpenses');
+const totalMovementEl = document.getElementById('totalMovement');
 
-// Variables Globales
 let currentDate = new Date();
-let bookings = {}; 
-let expenses = {}; 
+let bookings = {};
+let expenses = {};
 let barChartInstance = null;
-let pieChartInstance = null;
-let selectedDashboardYear = new Date().getFullYear(); 
+let selectedDashboardYear = new Date().getFullYear();
+let sortableInstance = null;
 
-// ==========================================
-// 3. CONEXIÓN REALTIME
-// ==========================================
+// --- SORTABLE JS (DRAG & DROP) ---
+function initSortable() {
+    if (sortableInstance) sortableInstance.destroy();
+    
+    const el = document.getElementById('historyList');
+    if (!el) return;
 
-// A) Escuchar Reservas
+    sortableInstance = new Sortable(el, {
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        dragClass: 'sortable-drag',
+        delay: 150, 
+        delayOnTouchOnly: true,
+        onEnd: function (evt) {
+            const items = el.querySelectorAll('.history-item');
+            const updates = {};
+            items.forEach((item, index) => {
+                const dateKey = item.dataset.id;
+                updates['bookings/' + dateKey + '/customOrder'] = index;
+            });
+            update(ref(db), updates);
+        }
+    });
+}
+
+// --- UI HELPERS ---
+window.toggleCard = (el) => el.classList.toggle('active');
+
+const toggleTheme = () => {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    themeBtn.querySelector('span').innerText = next === 'dark' ? 'light_mode' : 'dark_mode';
+    localStorage.setItem('theme', next);
+    updateDashboard(false);
+};
+const savedTheme = localStorage.getItem('theme') || 'dark';
+document.documentElement.setAttribute('data-theme', savedTheme);
+themeBtn.querySelector('span').innerText = savedTheme === 'dark' ? 'light_mode' : 'dark_mode';
+themeBtn.onclick = toggleTheme;
+
+// --- FIREBASE LISTENERS ---
 const bookingsRef = ref(db, 'bookings');
 onValue(bookingsRef, (snapshot) => {
-    bookings = snapshot.val() || {}; 
-    renderCalendar();
-    updateHistory();
-    populateYearFilter();
-    calculateFinances(); 
+    bookings = snapshot.val() || {};
+    refreshAllUI();
 });
 
-// B) Escuchar Gastos
 const expensesRef = ref(db, 'expenses');
 onValue(expensesRef, (snapshot) => {
     expenses = snapshot.val() || {};
-    renderExpensesList();
-    calculateFinances(); 
+    // Renderizar gastos y recalcular finanzas
+    renderExpensesList(); 
+    calculateFinances();
 });
 
-// ==========================================
-// 4. CÁLCULOS FINANCIEROS (4 RECUADROS)
-// ==========================================
-function calculateFinances() {
-    let totalGrossIncome = 0; // Total Dinero (Ingreso Bruto)
-    let totalExpenseSum = 0;  // Gastos Totales
-
-    // 1. Sumar Reservas Pagadas
-    Object.values(bookings).forEach(item => {
-        if (item.status === true) {
-            totalGrossIncome += (parseInt(item.price) || 0);
-        }
-    });
-
-    // 2. Sumar Gastos
-    Object.values(expenses).forEach(item => {
-        totalExpenseSum += (parseInt(item.amount) || 0);
-    });
-
-    // 3. Calcular Ganancia Real (Bolsillo)
-    const netProfit = totalGrossIncome - totalExpenseSum;
-
-    // 4. Calcular Movimiento Total (Flujo total manejado)
-    const totalMovement = totalGrossIncome + totalExpenseSum;
-
-    // 5. Mostrar en pantalla
-    grossIncomeEl.innerText = `$${totalGrossIncome.toLocaleString()}`; 
-    totalExpensesEl.innerText = `$${totalExpenseSum.toLocaleString()}`; 
-    realProfitEl.innerText = `$${netProfit.toLocaleString()}`; 
-    totalMovementEl.innerText = `$${totalMovement.toLocaleString()}`; // Nuevo
-
-    // Colores dinámicos
-    if (netProfit < 0) {
-        realProfitEl.style.color = '#c0392b'; // Rojo si hay pérdidas
-    } else {
-        realProfitEl.style.color = '#27ae60'; // Verde si hay ganancia
-    }
-
+function refreshAllUI() {
+    renderCalendar();
+    updateHistory();
+    populateYearFilter();
+    calculateFinances();
     if (window.getComputedStyle(dashboardSection).display !== 'none') {
         updateDashboard(false);
     }
 }
 
-// ==========================================
-// 5. HISTORIAL INTELIGENTE
-// ==========================================
+// --- FINANZAS ---
+function calculateFinances() {
+    let totalGross = 0; let totalExp = 0;
+    
+    const b = bookings || {};
+    const e = expenses || {};
 
-// Lógica para mostrar/ocultar buscador según la opción elegida
+    Object.values(b).forEach(item => { if (item.status === true) totalGross += (parseInt(item.price) || 0); });
+    Object.values(e).forEach(item => { totalExp += (parseInt(item.amount) || 0); });
+    
+    const netProfit = totalGross - totalExp;
+    const movement = totalGross + totalExp;
+
+    grossIncomeEl.innerText = `$${totalGross.toLocaleString()}`;
+    totalExpensesEl.innerText = `$${totalExp.toLocaleString()}`;
+    realProfitEl.innerText = `$${netProfit.toLocaleString()}`;
+    totalMovementEl.innerText = `$${movement.toLocaleString()}`;
+    realProfitEl.style.color = netProfit < 0 ? 'var(--danger)' : 'var(--success)';
+    
+    updateDashboardKPIText();
+}
+
+function updateDashboardKPIText() {
+    let total = 0, month = 0, yearVal = 0;
+    const today = new Date();
+    Object.keys(bookings).forEach(key => {
+        const item = bookings[key];
+        const price = parseInt(item.price) || 0;
+        const d = new Date(key);
+        if (item.status === true) total += price;
+        if (d.getFullYear() === selectedDashboardYear) {
+            if (item.status === true) {
+                yearVal += price;
+                if (d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()) month += price;
+            }
+        }
+    });
+    monthIncomeEl.innerText = `$${month.toLocaleString()}`;
+    yearIncomeEl.innerText = `$${yearVal.toLocaleString()}`;
+    totalIncomeEl.innerText = `$${total.toLocaleString()}`;
+}
+
+// --- HISTORIAL ---
 statusFilter.addEventListener('change', (e) => {
-    if (e.target.value === 'name') {
-        searchInput.style.display = 'block'; // Mostrar input
-        searchInput.focus();
-    } else {
-        searchInput.style.display = 'none'; // Ocultar input
-        searchInput.value = ""; // Limpiar texto al cambiar de modo
-    }
+    if (e.target.value === 'name') { searchWrapper.style.display = 'flex'; searchInput.focus(); } 
+    else { searchWrapper.style.display = 'none'; searchInput.value = ""; }
     updateHistory();
 });
 
 function updateHistory() {
     historyList.innerHTML = "";
-    const searchTerm = searchInput.value.toLowerCase();
-    const filterType = statusFilter.value; // 'all', 'paid', 'pending', 'name'
-
-    const listArray = Object.keys(bookings).map(date => ({ date, ...bookings[date] }));
+    const term = searchInput.value.toLowerCase();
+    const type = statusFilter.value;
+    const list = Object.keys(bookings).map(date => ({ date, ...bookings[date] }));
     
-    // 1. FILTRAR
-    const filteredList = listArray.filter(item => {
-        if (filterType === 'name') {
-            return item.name.toLowerCase().includes(searchTerm);
-        } else if (filterType === 'paid') {
-            return item.status === true;
-        } else if (filterType === 'pending') {
-            return item.status === false; // o undefined
-        }
-        return true; // 'all' (Muestra todo)
+    const filtered = list.filter(item => {
+        if (type === 'name') return item.name.toLowerCase().includes(term);
+        if (type === 'paid') return item.status === true;
+        if (type === 'pending') return item.status === false;
+        return true;
     });
 
-    // 2. ORDENAR CRONOLÓGICAMENTE (Por fecha de reserva)
-    filteredList.sort((a, b) => new Date(a.date) - new Date(b.date));
+    filtered.sort((a, b) => {
+        const orderA = (a.customOrder !== undefined) ? a.customOrder : 999999;
+        const orderB = (b.customOrder !== undefined) ? b.customOrder : 999999;
+        
+        if (type === 'all') {
+            if (orderA !== 999999 || orderB !== 999999) return orderA - orderB;
+        }
+        
+        return new Date(a.date) - new Date(b.date);
+    });
 
-    if (filteredList.length === 0) {
-        historyList.innerHTML = "<p style='text-align:center; color:#888'>No hay reservas encontradas.</p>";
-        return;
-    }
+    if (filtered.length === 0) { historyList.innerHTML = "<div style='text-align:center; padding:20px; color:var(--text-muted);'>Sin registros.</div>"; return; }
 
-    filteredList.forEach(item => {
+    filtered.forEach(item => {
         const li = document.createElement('li');
-        li.classList.add('history-item');
+        li.className = 'history-item';
+        li.dataset.id = item.date; 
         
-        const statusIcon = item.status === true ? '✅ Lista' : '⏳ Espera';
-        
+        const badgeClass = item.status ? 'status-paid' : 'status-pending';
+        const badgeText = item.status ? 'LISTA' : 'ESPERA';
         li.innerHTML = `
-            <strong>${item.name} <span style="float:right; font-size:0.8em;">${statusIcon}</span></strong>
-            <small>📞 ${item.phone || '-'}</small>
-            <span>📅 ${item.date} | ⏰ ${item.time}</span><br>
-            <span>👥 ${item.people} | 💰 $${item.price}</span>
+            <div><strong>${item.name}</strong><small><span class="material-icons-round" style="font-size:14px">event</span> ${item.date}</small></div>
+            <div style="text-align:right"><span class="badge-status ${badgeClass}">${badgeText}</span><div style="margin-top:5px; font-weight:700">$${parseInt(item.price).toLocaleString()}</div></div>
         `;
-        
-        li.addEventListener('click', () => {
+        li.addEventListener('click', (e) => {
+             if(li.classList.contains('sortable-drag')) return;
              const parts = item.date.split('-'); 
-             const dateObj = new Date(parts[0], parts[1]-1, parts[2]);
-             openBookingModal(item.date, dateObj);
+             openBookingModal(item.date, new Date(parts[0], parts[1]-1, parts[2]));
         });
         historyList.appendChild(li);
     });
-}
 
+    if (type === 'all') {
+        initSortable();
+    } else if (sortableInstance) {
+        sortableInstance.destroy();
+        sortableInstance = null;
+    }
+}
 searchInput.addEventListener('input', updateHistory);
 
-// ==========================================
-// 6. GESTIÓN DE GASTOS
-// ==========================================
+// --- GASTOS (CORRECCIÓN DE FECHAS) ---
 function renderExpensesList() {
     expensesList.innerHTML = "";
-    const listArray = Object.keys(expenses).map(key => ({ id: key, ...expenses[key] }));
     
-    // Ordenar gastos: Lo más nuevo arriba
-    listArray.sort((a, b) => new Date(b.date) - new Date(a.date));
+    // Función segura para obtener timestamp de fecha
+    const getExpenseTime = (exp) => {
+        // 1. Si tiene timestamp guardado, úsalo
+        if (exp.timestamp) return exp.timestamp;
+        
+        // 2. Si es string "14/12/2025" o "14-12-2025"
+        if (exp.date && (exp.date.includes('/') || exp.date.includes('-'))) {
+            const sep = exp.date.includes('/') ? '/' : '-';
+            const parts = exp.date.split(sep);
+            // Asumimos formato DD/MM/YYYY
+            if (parts.length === 3) {
+                return new Date(parts[2], parts[1]-1, parts[0]).getTime();
+            }
+        }
+        return 0; // Si falla, al final
+    };
 
-    if (listArray.length === 0) {
+    const list = Object.keys(expenses).map(key => ({ id: key, ...expenses[key] }));
+    
+    // Ordenar: Más reciente primero
+    list.sort((a, b) => getExpenseTime(b) - getExpenseTime(a));
+
+    if (list.length === 0) {
         expensesList.innerHTML = "<p style='text-align:center; color:#888'>No hay gastos.</p>";
         return;
     }
 
-    listArray.forEach(item => {
+    list.forEach(item => {
         const li = document.createElement('li');
-        li.classList.add('expense-item');
+        li.className = 'expense-item';
         li.innerHTML = `
             <div class="expense-info">
                 <strong>${item.name}</strong>
@@ -229,158 +273,154 @@ function renderExpensesList() {
             </div>
             <div class="expense-amount">-$${parseInt(item.amount).toLocaleString()}</div>
         `;
-        li.addEventListener('click', () => openExpenseModal(item));
+        li.onclick = () => openExpenseModal(item);
         expensesList.appendChild(li);
     });
 }
 
-window.openExpenseModal = (item = null) => {
-    expModal.style.display = 'flex';
-    if (item) {
-        expenseIdInput.value = item.id;
-        expenseNameInput.value = item.name;
-        expenseAmountInput.value = item.amount;
-        btnDeleteExpense.style.display = 'block';
-    } else {
-        expenseForm.reset();
-        expenseIdInput.value = "";
-        btnDeleteExpense.style.display = 'none';
-    }
+// --- GRAFICO ANIMADO FIX CELULAR ---
+function updateDashboard(animate = false) {
+    setTimeout(() => {
+        let monthlyData = new Array(12).fill(0);
+        Object.keys(bookings).forEach(key => {
+            const item = bookings[key];
+            const price = parseInt(item.price) || 0;
+            const d = new Date(key);
+            if (d.getFullYear() === selectedDashboardYear && item.status === true) {
+                monthlyData[d.getMonth()] += price;
+            }
+        });
+
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+        const textColor = isDark ? '#a0a0a0' : '#64748b';
+
+        const ctx = document.getElementById('barChart');
+        if(!ctx) return; 
+
+        if (barChartInstance) barChartInstance.destroy();
+        
+        barChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],
+                datasets: [{ label: 'Ingresos', data: monthlyData, backgroundColor: '#3a86ff', borderRadius: 4 }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false, 
+                plugins: { legend: { display: false } },
+                scales: { y: { grid: { color: gridColor }, ticks: { color: textColor } }, x: { grid: { display: false }, ticks: { color: textColor } } },
+                animation: animate ? { duration: 1500, easing: 'easeOutQuart' } : false
+            }
+        });
+    }, 200);
 }
 
+statusInput.addEventListener('change', (e) => {
+    statusText.innerText = e.target.checked ? "Pagada / Lista" : "Pendiente";
+    statusText.style.color = e.target.checked ? "var(--success)" : "var(--danger)";
+});
+
+window.openBookingModal = (dateKey, dateObj) => {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const checkDate = new Date(dateObj); checkDate.setHours(0,0,0,0);
+    const exists = bookings[dateKey];
+
+    if (checkDate < today && !exists) return alert("⛔ Fecha pasada.");
+
+    resModal.style.display = "flex"; dateInput.value = dateKey;
+    if (exists) {
+        nameInput.value = exists.name; phoneInput.value = exists.phone; priceInput.value = exists.price;
+        peopleInput.value = exists.people; timeInput.value = exists.time; statusInput.checked = exists.status === true;
+        customOrderInput.value = exists.customOrder !== undefined ? exists.customOrder : "";
+    } else {
+        resForm.reset(); dateInput.value = dateKey; statusInput.checked = false; customOrderInput.value = "";
+    }
+    statusInput.dispatchEvent(new Event('change'));
+}
+
+window.openExpenseModal = (item = null) => {
+    expModal.style.display = 'flex';
+    if(item) { expenseIdInput.value = item.id; expenseNameInput.value = item.name; expenseAmountInput.value = item.amount; btnDeleteExpense.style.display='block'; } 
+    else { expenseForm.reset(); expenseIdInput.value=""; btnDeleteExpense.style.display='none'; }
+}
+
+window.closeModalFunc = (id) => document.getElementById(id).style.display = 'none';
+window.onclick = (e) => { if(e.target.classList.contains('modal-backdrop')) e.target.style.display = 'none'; }
+
+// --- GUARDAR RESERVA (NUEVO PRIMERO EN ARRASTRAR) ---
+resForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if(!/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$/.test(nameInput.value)) return alert("Nombre: solo letras");
+    if(phoneInput.value && !/^[0-9]+$/.test(phoneInput.value)) return alert("Teléfono: solo números");
+    
+    let currentOrder;
+    if (customOrderInput.value !== "") {
+        currentOrder = parseInt(customOrderInput.value);
+    } else {
+        // NUEVA RESERVA: Buscar el orden más bajo y restar 1 para que quede primera
+        const allOrders = Object.values(bookings).map(b => b.customOrder).filter(o => o !== undefined);
+        const min = allOrders.length > 0 ? Math.min(...allOrders) : 0;
+        currentOrder = min - 1;
+    }
+
+    set(ref(db, 'bookings/' + dateInput.value), {
+        name: nameInput.value, phone: phoneInput.value, price: priceInput.value,
+        people: peopleInput.value, time: timeInput.value, status: statusInput.checked,
+        customOrder: currentOrder 
+    }).then(() => resModal.style.display = "none");
+});
+
+document.getElementById('btnDelete').onclick = () => {
+    if(bookings[dateInput.value] && confirm("¿Borrar?")) remove(ref(db, 'bookings/'+dateInput.value)).then(()=>resModal.style.display="none");
+};
+
+// --- GUARDAR GASTO (CON TIMESTAMP) ---
 expenseForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const id = expenseIdInput.value;
     const todayStr = new Date().toLocaleDateString('es-CL');
+    const timestamp = Date.now();
+
     const data = { 
         name: expenseNameInput.value, 
         amount: expenseAmountInput.value, 
-        date: id ? expenses[id].date : todayStr 
+        date: id ? expenses[id].date : todayStr,
+        timestamp: id ? expenses[id].timestamp : timestamp // Guardamos timestamp
     };
 
-    if (id) set(ref(db, 'expenses/' + id), data);
-    else push(expensesRef, data);
-    expModal.style.display = 'none';
+    if(id) set(ref(db, 'expenses/'+id), data); else push(ref(db, 'expenses'), data);
+    expModal.style.display='none';
 });
 
-btnDeleteExpense.addEventListener('click', () => {
-    const id = expenseIdInput.value;
-    if (id && confirm("¿Eliminar gasto?")) {
-        remove(ref(db, 'expenses/' + id));
-        expModal.style.display = 'none';
-    }
-});
+btnDeleteExpense.onclick = () => {
+    if(confirm("¿Borrar gasto?")) remove(ref(db, 'expenses/'+expenseIdInput.value)).then(()=>expModal.style.display='none');
+};
 
-// ==========================================
-// 7. ANIMACIÓN DASHBOARD
-// ==========================================
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) updateDashboard(true); 
-    });
-}, { threshold: 0.3 });
-observer.observe(dashboardSection);
-
-// ==========================================
-// 8. CALENDARIO
-// ==========================================
 function renderCalendar() {
     calendar.innerHTML = "";
-    monthYear.style.animation = 'none';
-    monthYear.offsetHeight; 
-    monthYear.style.animation = 'fadeInDown 0.5s ease';
-
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-    monthYear.innerText = `${monthNames[month]} ${year}`;
-
-    let firstDayIndex = new Date(year, month, 1).getDay();
-    if (firstDayIndex === 0) firstDayIndex = 6;
-    else firstDayIndex = firstDayIndex - 1;
-
-    const lastDay = new Date(year, month + 1, 0).getDate();
+    monthYear.innerText = new Date(currentDate).toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+    const year = currentDate.getFullYear(); const month = currentDate.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const offset = firstDay === 0 ? 6 : firstDay - 1;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
     const today = new Date(); today.setHours(0,0,0,0);
 
-    for (let i = 0; i < firstDayIndex; i++) {
-        calendar.appendChild(document.createElement('div'));
-    }
-
-    for (let i = 1; i <= lastDay; i++) {
-        const dayDiv = document.createElement('div');
-        dayDiv.classList.add('day');
-        dayDiv.innerText = i;
-        dayDiv.style.animationDelay = `${i * 0.02}s`;
-
-        const dateKey = `${year}-${month + 1}-${i}`;
+    for(let i=0; i<offset; i++) calendar.appendChild(document.createElement('div'));
+    
+    for(let i=1; i<=daysInMonth; i++) {
+        const div = document.createElement('div');
+        div.className = 'day'; div.innerText = i;
+        div.style.animationDelay = `${i*0.015}s`;
+        const key = `${year}-${month + 1}-${i}`;
         const thisDate = new Date(year, month, i);
-
-        if (thisDate < today) dayDiv.classList.add('past-day');
-
-        if (bookings[dateKey]) {
-            bookings[dateKey].status === true ? dayDiv.classList.add('paid') : dayDiv.classList.add('occupied');
-        }
-
-        if (i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
-            dayDiv.classList.add('current-day');
-        }
-
-        dayDiv.addEventListener('click', () => openBookingModal(dateKey, thisDate));
-        calendar.appendChild(dayDiv);
+        if(thisDate < today) div.classList.add('past-day');
+        if(bookings[key]) div.classList.add(bookings[key].status ? 'paid' : 'occupied');
+        if(i === today.getDate() && month === today.getMonth()) div.classList.add('current-day');
+        div.onclick = () => openBookingModal(key, thisDate);
+        calendar.appendChild(div);
     }
-}
-
-// ==========================================
-// 9. DASHBOARD (GRÁFICOS)
-// ==========================================
-function updateDashboard(animate = false) {
-    let totalIncome = 0, monthIncome = 0, yearIncome = 0;
-    let monthlyData = new Array(12).fill(0);
-    let paidCount = 0, pendingCount = 0;
-    const today = new Date(); const currentMonth = today.getMonth();
-
-    Object.keys(bookings).forEach(key => {
-        const item = bookings[key];
-        const price = parseInt(item.price) || 0;
-        const itemDate = new Date(key);
-        const itemYear = itemDate.getFullYear();
-
-        if (item.status === true) totalIncome += price;
-
-        if (itemYear === selectedDashboardYear) {
-            if (item.status === true) {
-                paidCount++;
-                yearIncome += price;
-                monthlyData[itemDate.getMonth()] += price;
-                if (itemYear === today.getFullYear() && itemDate.getMonth() === currentMonth) monthIncome += price;
-            } else {
-                pendingCount++;
-            }
-        }
-    });
-
-    monthIncomeEl.innerText = `$${monthIncome.toLocaleString()}`;
-    yearIncomeEl.innerText = `$${yearIncome.toLocaleString()}`;
-    totalIncomeEl.innerText = `$${totalIncome.toLocaleString()}`;
-
-    const barCtx = document.getElementById('barChart').getContext('2d');
-    const pieCtx = document.getElementById('pieChart').getContext('2d');
-    const animationConfig = animate ? { duration: 2000, easing: 'easeOutQuart' } : false;
-
-    if (barChartInstance) barChartInstance.destroy();
-    if (pieChartInstance) pieChartInstance.destroy();
-
-    barChartInstance = new Chart(barCtx, {
-        type: 'bar',
-        data: { labels: ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'], datasets: [{ label: 'Ingresos', data: monthlyData, backgroundColor: '#0077b6', borderRadius: 5 }] },
-        options: { responsive: true, maintainAspectRatio: false, animation: animationConfig, plugins: { legend: {display:false}, title: {display:true, text: `Ingresos ${selectedDashboardYear}`} }, scales: { y: {beginAtZero:true}, x: {grid:{display:false}} } }
-    });
-
-    pieChartInstance = new Chart(pieCtx, {
-        type: 'doughnut',
-        data: { labels: ['Lista', 'Espera'], datasets: [{ data: [paidCount, pendingCount], backgroundColor: ['#2ecc71', '#ff6b6b'], borderWidth: 0 }] },
-        options: { responsive: true, maintainAspectRatio: false, animation: animationConfig, cutout: '60%', plugins: { title: {display:true, text: `Estado ${selectedDashboardYear}`} } }
-    });
 }
 
 function populateYearFilter() {
@@ -388,63 +428,16 @@ function populateYearFilter() {
     Object.keys(bookings).forEach(k => !isNaN(new Date(k)) && years.add(new Date(k).getFullYear()));
     const sorted = Array.from(years).sort((a,b)=>b-a);
     const curr = yearFilter.value; yearFilter.innerHTML = "";
-    sorted.forEach(y => { const o = document.createElement('option'); o.value=y; o.innerText=y; if(y===selectedDashboardYear) o.selected=true; yearFilter.appendChild(o); });
+    sorted.forEach(y => { const opt = document.createElement('option'); opt.value = y; opt.innerText = y; if(y === selectedDashboardYear) opt.selected = true; yearFilter.appendChild(opt); });
     if(curr && Array.from(yearFilter.options).some(o=>o.value===curr)) yearFilter.value=curr;
 }
 
-yearFilter.addEventListener('change', (e) => { selectedDashboardYear = parseInt(e.target.value); updateDashboard(true); });
-
-// ==========================================
-// 10. MODAL & VALIDACIONES
-// ==========================================
-window.openBookingModal = (dateKey, dateObj) => {
-    const today = new Date(); today.setHours(0,0,0,0);
-    const checkDate = new Date(dateObj); checkDate.setHours(0,0,0,0);
-    const exists = bookings[dateKey];
-
-    if (checkDate < today && !exists) { alert("⛔ No se puede reservar en el pasado."); return; }
-
-    resModal.style.display = "flex";
-    document.getElementById('modalDateTitle').innerText = `Reserva: ${dateKey}`;
-    dateInput.value = dateKey;
-
-    if (exists) {
-        nameInput.value = exists.name;
-        phoneInput.value = exists.phone || '';
-        priceInput.value = exists.price;
-        peopleInput.value = exists.people;
-        timeInput.value = exists.time;
-        statusInput.checked = exists.status === true;
-    } else {
-        resForm.reset();
-        dateInput.value = dateKey;
-        statusInput.checked = false;
-    }
-}
-
-window.closeModalFunc = (id) => document.getElementById(id).style.display = 'none';
-window.onclick = (e) => { if(e.target.classList.contains('modal')) e.target.style.display = 'none'; }
-
-resForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (!/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$/.test(nameInput.value)) return alert("⚠️ Nombre solo letras.");
-    if (phoneInput.value && !/^[0-9]+$/.test(phoneInput.value)) return alert("⚠️ Teléfono solo números.");
-    
-    const key = dateInput.value;
-    set(ref(db, 'bookings/' + key), {
-        name: nameInput.value, phone: phoneInput.value, price: priceInput.value,
-        people: peopleInput.value, time: timeInput.value, status: statusInput.checked
-    }).then(() => resModal.style.display = "none").catch(err => alert(err.message));
-});
-
-document.getElementById('btnDelete').addEventListener('click', () => {
-    const key = dateInput.value;
-    if(bookings[key] && confirm("¿Eliminar?")) remove(ref(db, 'bookings/' + key)).then(()=>resModal.style.display="none");
-});
-
-document.getElementById('prevMonth').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth()-1); renderCalendar(); });
-document.getElementById('nextMonth').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth()+1); renderCalendar(); });
+document.getElementById('prevMonth').onclick = () => { currentDate.setMonth(currentDate.getMonth()-1); renderCalendar(); };
+document.getElementById('nextMonth').onclick = () => { currentDate.setMonth(currentDate.getMonth()+1); renderCalendar(); };
+yearFilter.onchange = (e) => { selectedDashboardYear = parseInt(e.target.value); updateDashboardKPIText(); updateDashboard(true); };
 window.goToSection = (id) => document.getElementById(id).scrollIntoView({behavior:'smooth'});
 
-// INICIO
+const observer = new IntersectionObserver((e) => { e.forEach(entry => { if(entry.isIntersecting) updateDashboard(true); }); }, {threshold:0.1});
+observer.observe(dashboardSection);
+
 renderCalendar();
