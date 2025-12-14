@@ -1,232 +1,205 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piscina Florangel</title>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Piscina Florangel | Admin</title>
     <link rel="stylesheet" href="style.css">
-    
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
 </head>
 <body>
 
+    <div class="background-glow"></div>
+
+    <button id="themeToggle" class="theme-btn">
+        <span class="material-icons-round">light_mode</span>
+    </button>
+
     <main class="main-container">
         
-        <section id="hero" class="full-screen hero-bg">
+        <section id="hero" class="full-screen">
             <div class="hero-content">
-                <h1>Piscina Florangel</h1>
-                <p>Tu espacio de relax y diversión</p>
+                <div class="badge">Administración</div>
+                <h1>Piscina <span class="gradient-text">Florangel</span></h1>
+                <p>Gestión inteligente de reservas y finanzas.</p>
             </div>
             <button class="nav-arrow bottom" onclick="goToSection('calendar-section')">
-                <span class="material-icons">keyboard_arrow_down</span>
+                <span class="material-icons-round">expand_more</span>
             </button>
         </section>
 
         <section id="calendar-section" class="full-screen">
             <button class="nav-arrow top" onclick="goToSection('hero')">
-                <span class="material-icons">keyboard_arrow_up</span>
+                <span class="material-icons-round">expand_less</span>
             </button>
-            
-            <div class="content-wrapper">
-                <h2>Registro del Cliente</h2>
-                
-                <header class="calendar-header">
-                    <button id="prevMonth">&lt;</button>
-                    <h3 id="monthYear"></h3>
-                    <button id="nextMonth">&gt;</button>
-                </header>
-
+            <div class="glass-card">
+                <div class="card-header">
+                    <h2>Calendario</h2>
+                    <div class="calendar-controls">
+                        <button id="prevMonth" class="icon-btn"><span class="material-icons-round">chevron_left</span></button>
+                        <h3 id="monthYear"></h3>
+                        <button id="nextMonth" class="icon-btn"><span class="material-icons-round">chevron_right</span></button>
+                    </div>
+                </div>
                 <div class="weekdays">
                     <div>Lu</div><div>Ma</div><div>Mi</div><div>Ju</div><div>Vi</div><div>Sa</div><div>Do</div>
                 </div>
-                
-                <div class="calendar" id="calendar"></div>
+                <div class="calendar-grid" id="calendar"></div>
             </div>
-
             <button class="nav-arrow bottom" onclick="goToSection('history-section')">
-                <span class="material-icons">keyboard_arrow_down</span>
+                <span class="material-icons-round">expand_more</span>
             </button>
         </section>
 
         <section id="history-section" class="full-screen">
             <button class="nav-arrow top" onclick="goToSection('calendar-section')">
-                <span class="material-icons">keyboard_arrow_up</span>
+                <span class="material-icons-round">expand_less</span>
             </button>
-            
-            <div class="content-wrapper history-wrapper">
-                <h2>Historial de Reservas</h2>
-                
-                <div class="search-box-container">
-                    <input type="text" id="searchInput" placeholder="Escribe el nombre..." style="display: none;">
-                    
-                    <select id="statusFilter" class="glass-select-small">
-                        <option value="all">📅 Todo (Cronológico)</option>
-                        <option value="paid">✅ Reserva Lista</option>
-                        <option value="pending">⏳ En Espera</option>
-                        <option value="name">🔍 Buscar por Nombre</option>
+            <div class="glass-card full-height-card">
+                <h2>Historial</h2>
+                <div class="filters-container">
+                    <div class="input-wrapper" id="searchWrapper" style="display: none;">
+                        <span class="material-icons-round icon">search</span>
+                        <input type="text" id="searchInput" placeholder="Nombre...">
+                    </div>
+                    <select id="statusFilter" class="custom-select">
+                        <option value="all">📅 Fecha creación</option>
+                        <option value="paid">✅ Listas</option>
+                        <option value="pending">⏳ Espera</option>
+                        <option value="name">🔍 Buscar</option>
                     </select>
                 </div>
-
-                <ul id="historyList" class="history-list">
-                    </ul>
+                <p class="drag-hint"><small>Manten presionado para mover</small></p>
+                <ul id="historyList" class="scroll-list"></ul>
             </div>
-
             <button class="nav-arrow bottom" onclick="goToSection('dashboard-section')">
-                <span class="material-icons">keyboard_arrow_down</span>
+                <span class="material-icons-round">expand_more</span>
             </button>
         </section>
 
         <section id="dashboard-section" class="full-screen">
             <button class="nav-arrow top" onclick="goToSection('history-section')">
-                <span class="material-icons">keyboard_arrow_up</span>
+                <span class="material-icons-round">expand_less</span>
             </button>
-
-            <div class="content-wrapper dashboard-wrapper">
-                <div class="dashboard-header">
+            <div class="glass-card full-height-card dashboard-card">
+                <div class="card-header">
                     <h2>Estadísticas</h2>
-                    <select id="yearFilter" class="glass-select"></select>
+                    <select id="yearFilter" class="mini-select"></select>
                 </div>
-                
-                <div class="stats-cards">
-                    <div class="card">
-                        <h3>Mes Actual</h3>
-                        <p id="monthIncome">$0</p>
-                    </div>
-                    <div class="card">
-                        <h3>Año Seleccionado</h3>
-                        <p id="yearIncome">$0</p>
-                    </div>
-                    <div class="card total">
-                        <h3>Total Histórico</h3>
-                        <p id="totalIncome">$0</p>
-                    </div>
+                <div class="kpi-grid">
+                    <div class="kpi-card"><small>Este Mes</small><p id="monthIncome">$0</p></div>
+                    <div class="kpi-card"><small>Año Seleccionado</small><p id="yearIncome">$0</p></div>
+                    <div class="kpi-card highlight"><small>Total Histórico</small><p id="totalIncome">$0</p></div>
                 </div>
-
-                <div class="charts-container">
-                    <div class="chart-box">
+                <div class="charts-wrapper">
+                    <div class="chart-container">
                         <canvas id="barChart"></canvas>
-                    </div>
-                    <div class="chart-box">
-                        <canvas id="pieChart"></canvas>
                     </div>
                 </div>
             </div>
-
             <button class="nav-arrow bottom" onclick="goToSection('expenses-section')">
-                <span class="material-icons">keyboard_arrow_down</span>
+                <span class="material-icons-round">expand_more</span>
             </button>
         </section>
 
         <section id="expenses-section" class="full-screen">
             <button class="nav-arrow top" onclick="goToSection('dashboard-section')">
-                <span class="material-icons">keyboard_arrow_up</span>
+                <span class="material-icons-round">expand_less</span>
             </button>
-
-            <div class="content-wrapper expenses-wrapper">
-                <h2>Control de Gastos</h2>
-
-                <div class="financial-summary-grid">
-                    <div class="f-card profit">
-                        <h3>Ganancia Real</h3>
-                        <small>(Dinero - Gastos)</small>
-                        <p id="realProfit">$0</p>
+            <div class="glass-card full-height-card">
+                <h2>Finanzas</h2>
+                <div class="finance-grid">
+                    <div class="fin-card profit" onclick="toggleCard(this)">
+                        <span class="material-icons-round">savings</span>
+                        <div>
+                            <small class="fin-title">Ganancia Real</small>
+                            <p id="realProfit">$0</p>
+                            <small class="fin-desc">(Dinero - Gastos)</small>
+                        </div>
                     </div>
-                    <div class="f-card income">
-                        <h3>Total Dinero</h3>
-                        <small>(Ingresos)</small>
-                        <p id="grossIncome">$0</p>
+                    <div class="fin-card income" onclick="toggleCard(this)">
+                        <span class="material-icons-round">payments</span>
+                        <div>
+                            <small class="fin-title">Total Dinero</small>
+                            <p id="grossIncome">$0</p>
+                            <small class="fin-desc">(Ingresos Brutos)</small>
+                        </div>
                     </div>
-                    <div class="f-card expense">
-                        <h3>Total Gastos</h3>
-                        <small>(Salidas)</small>
-                        <p id="totalExpenses">$0</p>
+                    <div class="fin-card expense" onclick="toggleCard(this)">
+                        <span class="material-icons-round">trending_down</span>
+                        <div>
+                            <small class="fin-title">Total Gastos</small>
+                            <p id="totalExpenses">$0</p>
+                            <small class="fin-desc">(Salidas Registradas)</small>
+                        </div>
                     </div>
-                    <div class="f-card movement">
-                        <h3>Movimiento Total</h3>
-                        <small>(Dinero + Gastos)</small>
-                        <p id="totalMovement">$0</p>
+                    <div class="fin-card movement" onclick="toggleCard(this)">
+                        <span class="material-icons-round">currency_exchange</span>
+                        <div>
+                            <small class="fin-title">Movimiento Total</small>
+                            <p id="totalMovement">$0</p>
+                            <small class="fin-desc">(Ingresos + Gastos)</small>
+                        </div>
                     </div>
                 </div>
-
-                <button class="btn-add-expense" onclick="openExpenseModal()">
-                    <span class="material-icons">add_circle</span> Nuevo Gasto
+                <button class="btn-action" onclick="openExpenseModal()">
+                    <span class="material-icons-round">add</span> Nuevo Gasto
                 </button>
-
-                <ul id="expensesList" class="history-list">
-                    </ul>
+                <ul id="expensesList" class="scroll-list compact"></ul>
             </div>
         </section>
 
     </main>
 
-    <div id="reservationModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModalFunc('reservationModal')">&times;</span>
-            <h3 id="modalDateTitle">Editar Reserva</h3>
-            
+    <div id="reservationModal" class="modal-backdrop">
+        <div class="modal-panel">
+            <div class="modal-header">
+                <h3>Reserva</h3>
+                <span class="close-btn" onclick="closeModalFunc('reservationModal')">&times;</span>
+            </div>
             <form id="reservationForm">
                 <input type="hidden" id="selectedDate">
-                
-                <div class="status-box">
-                    <label for="status" class="status-label">
-                        <input type="checkbox" id="status"> 
-                        ✅ Reserva Lista (Pagada)
-                    </label>
+                <input type="hidden" id="customOrder"> <div class="toggle-container">
+                    <label class="switch"><input type="checkbox" id="status"><span class="slider round"></span></label>
+                    <span id="statusText">Pendiente</span>
                 </div>
-                
-                <label>Nombre Cliente:</label>
-                <input type="text" id="name" required placeholder="Solo letras">
-
-                <label>Teléfono:</label>
-                <input type="tel" id="phone" placeholder="Solo números">
-
-                <label>Precio:</label>
-                <input type="number" id="price" placeholder="$">
-
-                <label>Personas:</label>
-                <input type="number" id="people">
-
-                <label>Hora Inicio:</label>
-                <input type="time" id="time">
-
-                <div class="actions">
-                    <button type="submit" class="btn-save">Guardar</button>
-                    <button type="button" id="btnDelete" class="btn-delete">Eliminar</button>
+                <div class="input-group"><label>Cliente</label><input type="text" id="name" required placeholder="Nombre completo"></div>
+                <div class="input-row">
+                    <div class="input-group"><label>Teléfono</label><input type="tel" id="phone" placeholder="9 1234 5678"></div>
+                    <div class="input-group"><label>Precio ($)</label><input type="number" id="price" placeholder="0"></div>
+                </div>
+                <div class="input-row">
+                    <div class="input-group"><label>Personas</label><input type="number" id="people" placeholder="0"></div>
+                    <div class="input-group"><label>Hora</label><input type="time" id="time"></div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btnDelete" class="btn-secondary">Eliminar</button>
+                    <button type="submit" class="btn-primary">Guardar</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div id="expenseModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModalFunc('expenseModal')">&times;</span>
-            <h3>Registrar Gasto</h3>
-            
+    <div id="expenseModal" class="modal-backdrop">
+        <div class="modal-panel">
+            <div class="modal-header"><h3>Registrar Gasto</h3><span class="close-btn" onclick="closeModalFunc('expenseModal')">&times;</span></div>
             <form id="expenseForm">
                 <input type="hidden" id="expenseId">
-                
-                <label>Nombre del Gasto:</label>
-                <input type="text" id="expenseName" required placeholder="Ej: Cloro, Mantención...">
-
-                <label>Monto ($):</label>
-                <input type="number" id="expenseAmount" required placeholder="$">
-
-                <p style="font-size: 0.8rem; color: #888; margin-top: 10px;">
-                    📅 Fecha: Hoy (Automático)
-                </p>
-
-                <div class="actions">
-                    <button type="submit" class="btn-save" style="background: #e74c3c;">Guardar</button>
-                    <button type="button" id="btnDeleteExpense" class="btn-delete" style="display:none;">Eliminar</button>
+                <div class="input-group"><label>Concepto</label><input type="text" id="expenseName" required placeholder="Ej: Cloro..."></div>
+                <div class="input-group"><label>Monto ($)</label><input type="number" id="expenseAmount" required placeholder="0"></div>
+                <p class="helper-text">📅 Fecha automática: Hoy</p>
+                <div class="modal-actions">
+                    <button type="button" id="btnDeleteExpense" class="btn-secondary" style="display:none;">Eliminar</button>
+                    <button type="submit" class="btn-primary danger">Guardar</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script type="module" src="script.js"></script>
-
 </body>
 </html>
