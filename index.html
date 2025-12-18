@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Piscina Florangel | Admin</title>
+    
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
@@ -36,7 +37,7 @@
             <button class="nav-arrow top" onclick="goToSection('hero')">
                 <span class="material-icons-round">expand_less</span>
             </button>
-            <div class="glass-card">
+            <div class="glass-card calendar-card">
                 <div class="card-header">
                     <h2>Calendario</h2>
                     <div class="calendar-controls">
@@ -67,14 +68,15 @@
                         <input type="text" id="searchInput" placeholder="Nombre...">
                     </div>
                     <select id="statusFilter" class="custom-select">
-                        <option value="all">📅 Fecha creación</option>
+                        <option value="all">📅 Recientes Primero</option>
                         <option value="paid">✅ Listas</option>
                         <option value="pending">⏳ Espera</option>
                         <option value="name">🔍 Buscar</option>
                     </select>
                 </div>
-                <p class="drag-hint"><small>Manten presionado para mover</small></p>
-                <ul id="historyList" class="scroll-list"></ul>
+                <div class="list-container">
+                    <ul id="historyList" class="scroll-list"></ul>
+                </div>
             </div>
             <button class="nav-arrow bottom" onclick="goToSection('dashboard-section')">
                 <span class="material-icons-round">expand_more</span>
@@ -149,7 +151,9 @@
                 <button class="btn-action" onclick="openExpenseModal()">
                     <span class="material-icons-round">add</span> Nuevo Gasto
                 </button>
-                <ul id="expensesList" class="scroll-list compact"></ul>
+                <div class="list-container">
+                    <ul id="expensesList" class="scroll-list compact"></ul>
+                </div>
             </div>
         </section>
 
@@ -163,7 +167,10 @@
             </div>
             <form id="reservationForm">
                 <input type="hidden" id="selectedDate">
-                <input type="hidden" id="customOrder"> <div class="toggle-container">
+                <input type="hidden" id="createdAt"> 
+                <input type="hidden" id="customOrder"> 
+                
+                <div class="toggle-container">
                     <label class="switch"><input type="checkbox" id="status"><span class="slider round"></span></label>
                     <span id="statusText">Pendiente</span>
                 </div>
