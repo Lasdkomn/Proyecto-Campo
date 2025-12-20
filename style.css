@@ -138,4 +138,3 @@ h1 { font-size: 3.5rem; margin: 0; font-weight: 800; letter-spacing: -1px; opaci
 
 @media (min-width: 768px) { .glass-card { padding: 30px; } h1 { font-size: 4.5rem; } }
 @media (max-width: 600px) { .chart-container { min-height: 300px; } .finance-grid { gap: 10px; } }
-
