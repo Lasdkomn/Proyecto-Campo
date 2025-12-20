@@ -14,7 +14,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// DOM & UI
 const calendar = document.getElementById('calendar');
 const monthYear = document.getElementById('monthYear');
 const historyList = document.getElementById('historyList');
@@ -27,8 +26,6 @@ const resModal = document.getElementById('reservationModal');
 const expModal = document.getElementById('expenseModal');
 
 const dateInput = document.getElementById('selectedDate');
-const customOrderInput = document.getElementById('customOrder');
-const createdAtInput = document.getElementById('createdAt');
 const nameInput = document.getElementById('name');
 const phoneInput = document.getElementById('phone');
 const priceInput = document.getElementById('price');
@@ -61,31 +58,8 @@ let bookings = {};
 let expenses = {};
 let barChartInstance = null;
 let selectedDashboardYear = new Date().getFullYear();
-let sortableInstance = null;
 
-// --- SORTABLE ---
-function initSortable() {
-    if (sortableInstance) sortableInstance.destroy();
-    const el = document.getElementById('historyList');
-    if (!el) return;
-    sortableInstance = new Sortable(el, {
-        animation: 150,
-        ghostClass: 'sortable-ghost',
-        dragClass: 'sortable-drag',
-        delay: 150, delayOnTouchOnly: true,
-        onEnd: function (evt) {
-            const items = el.querySelectorAll('.history-item');
-            const updates = {};
-            items.forEach((item, index) => {
-                const dateKey = item.dataset.id;
-                updates['bookings/' + dateKey + '/customOrder'] = index;
-            });
-            update(ref(db), updates);
-        }
-    });
-}
-
-// --- UI ---
+// --- UI HELPERS ---
 window.toggleCard = (el) => el.classList.toggle('active');
 
 const toggleTheme = () => {
@@ -102,7 +76,7 @@ document.documentElement.setAttribute('data-theme', savedTheme);
 themeBtn.querySelector('span').innerText = savedTheme === 'dark' ? 'light_mode' : 'dark_mode';
 themeBtn.onclick = toggleTheme;
 
-// --- LISTENERS ---
+// --- FIREBASE LISTENERS ---
 const bookingsRef = ref(db, 'bookings');
 onValue(bookingsRef, (snapshot) => {
     bookings = snapshot.val() || {};
@@ -119,7 +93,7 @@ onValue(expensesRef, (snapshot) => {
 function refreshAllUI() {
     renderCalendar();
     updateHistory();
-    populateYearFilter(); // Aseguramos que se llene el filtro
+    populateYearFilter();
     calculateFinances();
     if (window.getComputedStyle(dashboardSection).display !== 'none') {
         updateDashboard(false);
@@ -149,13 +123,11 @@ function updateDashboardKPIText() {
     Object.keys(bookings).forEach(key => {
         const item = bookings[key];
         const price = parseInt(item.price) || 0;
-        const d = new Date(key);
-        if (item.status === true) total += price;
-        // La comparación de año es segura
         const parts = key.split('-');
-        if(parts.length >= 1) {
+        if(parts.length >= 3) {
             const y = parseInt(parts[0]);
             const m = parseInt(parts[1]) - 1;
+            if (item.status === true) total += price;
             if (y === selectedDashboardYear && item.status === true) {
                 yearVal += price;
                 if (m === today.getMonth() && y === today.getFullYear()) month += price;
@@ -165,38 +137,6 @@ function updateDashboardKPIText() {
     monthIncomeEl.innerText = `$${month.toLocaleString()}`;
     yearIncomeEl.innerText = `$${yearVal.toLocaleString()}`;
     totalIncomeEl.innerText = `$${total.toLocaleString()}`;
-}
-
-// --- YEAR FILTER FIX ---
-function populateYearFilter() {
-    const years = new Set();
-    years.add(new Date().getFullYear()); // Siempre año actual
-
-    Object.keys(bookings).forEach(key => {
-        const parts = key.split('-');
-        if(parts.length >= 1) {
-            const y = parseInt(parts[0]);
-            if(!isNaN(y)) years.add(y);
-        }
-    });
-
-    const sorted = Array.from(years).sort((a,b)=>b-a);
-    // Recuperar selección previa o usar default
-    const currentSelection = yearFilter.value ? parseInt(yearFilter.value) : selectedDashboardYear;
-    
-    yearFilter.innerHTML = "";
-    sorted.forEach(y => { 
-        const opt = document.createElement('option'); 
-        opt.value = y; 
-        opt.innerText = y; 
-        if(y === currentSelection) opt.selected = true; 
-        yearFilter.appendChild(opt); 
-    });
-    
-    // Asegurar que la variable global esté sincronizada
-    if(yearFilter.value) selectedDashboardYear = parseInt(yearFilter.value);
-    
-    updateDashboardKPIText(); // Recalcular KPI con el año asegurado
 }
 
 statusFilter.addEventListener('change', (e) => {
@@ -218,17 +158,12 @@ function updateHistory() {
         return true;
     });
 
+    // ORDEN CRONOLÓGICO: 19, 20, 21...
     filtered.sort((a, b) => {
-        if (type === 'all' && (a.customOrder !== undefined || b.customOrder !== undefined)) {
-             const oA = a.customOrder !== undefined ? a.customOrder : 999999;
-             const oB = b.customOrder !== undefined ? b.customOrder : 999999;
-             return oA - oB;
-        }
-        
-        const tA = a.createdAt || 0;
-        const tB = b.createdAt || 0;
-        if (tA === 0 && tB === 0) return new Date(b.date) - new Date(a.date);
-        return tB - tA; // Nuevo primero
+        // Parse date manual para asegurar orden correcto
+        const dateA = new Date(a.date.replace(/-/g, '/'));
+        const dateB = new Date(b.date.replace(/-/g, '/'));
+        return dateA - dateB; 
     });
 
     if (filtered.length === 0) { historyList.innerHTML = "<div style='text-align:center; padding:20px; color:var(--text-muted);'>Sin registros.</div>"; return; }
@@ -236,20 +171,15 @@ function updateHistory() {
     filtered.forEach(item => {
         const li = document.createElement('li');
         li.className = 'history-item';
-        li.dataset.id = item.date; 
         const badgeClass = item.status ? 'status-paid' : 'status-pending';
         const badgeText = item.status ? 'LISTA' : 'ESPERA';
         li.innerHTML = `<div><strong>${item.name}</strong><small><span class="material-icons-round" style="font-size:14px">event</span> ${item.date}</small></div><div style="text-align:right"><span class="badge-status ${badgeClass}">${badgeText}</span><div style="margin-top:5px; font-weight:700">$${parseInt(item.price).toLocaleString()}</div></div>`;
         li.addEventListener('click', (e) => {
-             if(li.classList.contains('sortable-drag')) return;
              const parts = item.date.split('-'); 
              openBookingModal(item.date, new Date(parts[0], parts[1]-1, parts[2]));
         });
         historyList.appendChild(li);
     });
-
-    if (type === 'all') { initSortable(); } 
-    else if (sortableInstance) { sortableInstance.destroy(); sortableInstance = null; }
 }
 searchInput.addEventListener('input', updateHistory);
 
@@ -329,10 +259,8 @@ window.openBookingModal = (dateKey, dateObj) => {
     if (exists) {
         nameInput.value = exists.name; phoneInput.value = exists.phone; priceInput.value = exists.price;
         peopleInput.value = exists.people; timeInput.value = exists.time; statusInput.checked = exists.status === true;
-        customOrderInput.value = exists.customOrder !== undefined ? exists.customOrder : "";
-        createdAtInput.value = exists.createdAt || "";
     } else {
-        resForm.reset(); dateInput.value = dateKey; statusInput.checked = false; customOrderInput.value = ""; createdAtInput.value = "";
+        resForm.reset(); dateInput.value = dateKey; statusInput.checked = false;
     }
     statusInput.dispatchEvent(new Event('change'));
 }
@@ -351,22 +279,9 @@ resForm.addEventListener('submit', (e) => {
     if(!/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$/.test(nameInput.value)) return alert("Nombre: solo letras");
     if(phoneInput.value && !/^[0-9]+$/.test(phoneInput.value)) return alert("Teléfono: solo números");
     
-    let currentOrder;
-    if (customOrderInput.value !== "") currentOrder = parseInt(customOrderInput.value);
-    else {
-        const allOrders = Object.values(bookings).map(b => b.customOrder).filter(o => o !== undefined);
-        const min = allOrders.length > 0 ? Math.min(...allOrders) : 0;
-        currentOrder = min - 1;
-    }
-    
-    let timestamp;
-    if (createdAtInput.value && createdAtInput.value !== "") timestamp = parseInt(createdAtInput.value);
-    else timestamp = Date.now();
-
     set(ref(db, 'bookings/' + dateInput.value), {
         name: nameInput.value, phone: phoneInput.value, price: priceInput.value,
-        people: peopleInput.value, time: timeInput.value, status: statusInput.checked,
-        customOrder: currentOrder, createdAt: timestamp
+        people: peopleInput.value, time: timeInput.value, status: statusInput.checked
     }).then(() => resModal.style.display = "none");
 });
 
@@ -414,6 +329,20 @@ function renderCalendar(animationClass = null) {
         div.onclick = () => openBookingModal(key, thisDate);
         calendar.appendChild(div);
     }
+}
+
+function populateYearFilter() {
+    const years = new Set([new Date().getFullYear()]);
+    Object.keys(bookings).forEach(k => {
+        const parts = k.split('-');
+        if(parts.length >= 1) { const y = parseInt(parts[0]); if(!isNaN(y)) years.add(y); }
+    });
+    const sorted = Array.from(years).sort((a,b)=>b-a);
+    const curr = yearFilter.value ? parseInt(yearFilter.value) : selectedDashboardYear;
+    yearFilter.innerHTML = "";
+    sorted.forEach(y => { const opt = document.createElement('option'); opt.value = y; opt.innerText = y; if(y === curr) opt.selected = true; yearFilter.appendChild(opt); });
+    if(yearFilter.value) selectedDashboardYear = parseInt(yearFilter.value);
+    updateDashboardKPIText();
 }
 
 document.getElementById('prevMonth').onclick = () => { currentDate.setMonth(currentDate.getMonth()-1); renderCalendar('slide-prev'); };
